@@ -14,6 +14,12 @@ export async function login(authDetail){
       if(data.accessToken){
         sessionStorage.setItem("token", JSON.stringify(data.accessToken));
         sessionStorage.setItem("cbid", JSON.stringify(data.user.id));
+        if(data.user?.role){
+          sessionStorage.setItem("role", JSON.stringify(data.user.role));
+        }
+        if(data.user?.name){
+          sessionStorage.setItem("name", JSON.stringify(data.user.name));
+        }
       }
 
       return data;
@@ -35,10 +41,18 @@ export async function register(authDetail){
       if(data.accessToken){
         sessionStorage.setItem("token", JSON.stringify(data.accessToken));
         sessionStorage.setItem("cbid", JSON.stringify(data.user.id));
+        if(data.user?.role){
+          sessionStorage.setItem("role", JSON.stringify(data.user.role));
+        }
+        if(data.user?.name){
+          sessionStorage.setItem("name", JSON.stringify(data.user.name));
+        }
       }
       return data;
 }
 export function logout(){
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("cbid");
+    sessionStorage.removeItem("role");
+    sessionStorage.removeItem("name");
 }

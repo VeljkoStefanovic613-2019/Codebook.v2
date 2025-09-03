@@ -10,3 +10,4 @@ export { Login } from "./Login";
 export { Register } from "./Register";
 
 export { PageNotFound } from "./PageNotFound";
+export { AdminPage } from "./Admin/AdminPage";
