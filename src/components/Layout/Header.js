@@ -16,7 +16,6 @@ export const Header = () => {
     catch { return null; }
   })();
 
-  
   const { cartList } = useCart();
 
   useEffect(() => {
@@ -29,6 +28,26 @@ export const Header = () => {
     }
   }, [darkMode]);
 
+  // Close dropdown and search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is outside dropdown
+      if (dropdown && !event.target.closest('#dropdownAvatar') && !event.target.closest('.dropdown-trigger')) {
+        setDropdown(false);
+      }
+      
+      // Check if click is outside search
+      if (searchSection && !event.target.closest('.search-container') && !event.target.closest('.search-trigger')) {
+        setSearchSection(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdown, searchSection]);
+
   return (
     <header>      
       <nav className="bg-white dark:bg-gray-900">
@@ -38,21 +57,36 @@ export const Header = () => {
                   <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">CodeBook</span>
               </Link>
               <div className="flex items-center relative">
-              <span onClick={() => setDarkMode(!darkMode)} className={"cursor-pointer text-xl text-gray-700 mr-5" + (darkMode ? "bi bi-sun text-white mr-5" : "dark:text-white bi bi-moon mr-5")}></span>
-                  <span onClick={() => setSearchSection(!searchSection)} className="cursor-pointer text-xl text-gray-700 dark:text-white mr-5 bi bi-search"></span>
+                <span 
+                  onClick={() => setDarkMode(!darkMode)} 
+                  className={`cursor-pointer text-xl mr-5 ${darkMode ? "bi bi-sun text-yellow-400" : "bi bi-moon text-gray-700 dark:text-white"}`}
+                ></span>
+                  
+                <span 
+                  onClick={() => {
+                    setSearchSection(!searchSection);
+                    setDropdown(false);
+                  }} 
+                  className="cursor-pointer text-xl text-gray-700 dark:text-white mr-5 bi bi-search search-trigger"
+                ></span>
                   
                   <Link to="/cart" className="text-gray-700 dark:text-white mr-5">
                     <span className="text-2xl bi bi-cart-fill relative">
                       <span className="text-white text-sm absolute -top-1 left-2.5 bg-rose-500 px-1 rounded-full ">{cartList.length}</span>
                     </span>                    
                   </Link>
-                  <span onClick={() => setDropdown(!dropdown)} className="bi bi-person-circle cursor-pointer text-2xl text-gray-700 dark:text-white"></span>
+                  <span 
+                    onClick={() => {
+                      setDropdown(!dropdown);
+                      setSearchSection(false);
+                    }} 
+                    className="bi bi-person-circle cursor-pointer text-2xl text-gray-700 dark:text-white dropdown-trigger"
+                  ></span>
                   { dropdown && ( token ? <DropdownLoggedIn setDropdown={setDropdown} /> : <DropdownLoggedOut setDropdown={setDropdown} /> ) }
               </div>
           </div>
       </nav>
       { searchSection && <Search setSearchSection={setSearchSection} /> }
-      
     </header>
   )
 }

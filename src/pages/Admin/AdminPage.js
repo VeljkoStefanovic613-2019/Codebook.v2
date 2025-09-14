@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTitle } from "../../hooks/useTitle";
 import { createProduct, deleteProduct, updateProduct } from "../../services/productService";
 import { 
@@ -33,84 +33,91 @@ export const AdminPage = () => {
         imagePreview: "",
         best_seller: false,
         in_stock: true,
-        size: 1,
+        size: "",
         rating: 5,
     });
 
-    async function loadProducts(){
-        try{
+    // ---- Loaders ----
+    const loadProducts = useCallback(async () => {
+        try {
             setLoading(true);
             const list = await adminGetAllProducts();
             setProducts(list);
             return list;
-        }catch(err){
+        } catch (err) {
             setError("Failed to load products");
-        }finally{
+            return [];
+        } finally {
             setLoading(false);
         }
-    }
+    }, []);
 
-    async function loadOrders(){
-        try{
+    const loadOrders = useCallback(async () => {
+        try {
             const list = await adminGetAllOrders();
             setOrders(list);
-        }catch(err){ /* ignore */ }
-    }
+        } catch {
+            /* ignore */
+        }
+    }, []);
 
-    async function loadUsers(){
-        try{
+    const loadUsers = useCallback(async () => {
+        try {
             const list = await adminGetAllUsers();
             setUsers(list);
-        }catch(err){ /* ignore */ }
-    }
+        } catch {
+            /* ignore */
+        }
+    }, []);
 
-    async function loadReviews(){
-        try{
+    const loadReviews = useCallback(async () => {
+        try {
             const productsList = await loadProducts();
-            
-            // Сакупи све рецензије из свих производа
             const allReviews = [];
+
             productsList.forEach(product => {
-                if (product.reviews && product.reviews.length > 0) {
+                if (product.reviews?.length > 0) {
                     product.reviews.forEach(review => {
                         allReviews.push({
                             ...review,
                             productId: product.id,
-                            productName: product.name
+                            productName: product.name,
                         });
                     });
                 }
             });
-            
+
             setReviews(allReviews);
-        }catch(err){
+        } catch {
             setError("Failed to load reviews");
         }
-    }
+    }, [loadProducts]);
 
+    // ---- Effects ----
     useEffect(() => {
         loadProducts();
         loadOrders();
         loadUsers();
-    }, []);
+    }, [loadProducts, loadOrders, loadUsers]);
 
     useEffect(() => {
-        if (activeTab === 'reviews') {
+        if (activeTab === "reviews") {
             loadReviews();
         }
-    }, [activeTab]);
+    }, [activeTab, loadReviews]);
 
-    function handleChange(event){
+    // ---- Handlers ----
+    function handleChange(event) {
         const { name, value, type, checked } = event.target;
-        setFormData(prev => ({ 
-            ...prev, 
-            [name]: type === 'checkbox' ? checked : value 
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : value,
         }));
     }
 
-    function handleFileChange(event){
+    function handleFileChange(event) {
         const file = event.target.files?.[0];
-        if(!file){
+        if (!file) {
             setFormData(prev => ({ ...prev, imageFile: null, imagePreview: "" }));
             return;
         }
@@ -122,18 +129,18 @@ export const AdminPage = () => {
     }
 
     function resetForm() {
-        setFormData({ 
-            name: "", 
-            overview: "", 
+        setFormData({
+            name: "",
+            overview: "",
             long_description: "",
-            price: "", 
-            poster: "", 
-            imageFile: null, 
+            price: "",
+            poster: "",
+            imageFile: null,
             imagePreview: "",
             best_seller: false,
             in_stock: true,
-            size: 1,
-            rating: 5
+            size: "",
+            rating: 5,
         });
         setEditingProduct(null);
     }
@@ -149,16 +156,16 @@ export const AdminPage = () => {
             imageFile: null,
             imagePreview: product.poster || "",
             best_seller: product.best_seller || false,
-            in_stock: product.in_stock !== undefined ? product.in_stock : true,
-            size: product.size || 1,
-            rating: product.rating || 5
+            in_stock: product.in_stock ?? true,
+            size: product.size || "",
+            rating: product.rating || 5,
         });
     }
 
-    async function handleAdd(event){
+    async function handleAdd(event) {
         event.preventDefault();
         setError("");
-        try{
+        try {
             const baseProduct = {
                 name: formData.name,
                 overview: formData.overview,
@@ -170,70 +177,75 @@ export const AdminPage = () => {
                 in_stock: formData.in_stock,
                 size: Number(formData.size),
                 best_seller: formData.best_seller,
-                reviews: editingProduct ? editingProduct.reviews || [] : []
+                reviews: editingProduct ? editingProduct.reviews || [] : [],
             };
-            
+
             if (editingProduct) {
-                await updateProduct(editingProduct.id, baseProduct);
+                const updated = await updateProduct(editingProduct.id, baseProduct);
+                setProducts(prev =>
+                    prev.map(p => (p.id === editingProduct.id ? updated : p))
+                );
             } else {
-                await createProduct(baseProduct);
+                const created = await createProduct(baseProduct);
+                setProducts(prev => [...prev, created]);
             }
-            
+
             resetForm();
-            loadProducts();
-        }catch(err){
-            setError(`Failed to ${editingProduct ? 'update' : 'create'} product${err?.status ? ` (${err.status})` : ""}`);
+        } catch (err) {
+            setError(
+                `Failed to ${editingProduct ? "update" : "create"} product${
+                    err?.status ? ` (${err.status})` : ""
+                }`
+            );
         }
     }
 
-    async function handleDelete(id){
+    async function handleDelete(id) {
         setError("");
-        try{
+        try {
             await deleteProduct(Number(id));
-            await loadProducts();
-        }catch(err){
+            setProducts(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
             setError(`Failed to delete product${err?.status ? ` (${err.status})` : ""}`);
         }
     }
 
-    async function handleAddReview(e){
+    async function handleAddReview(e) {
         e.preventDefault();
-        try{
+        try {
             const productId = Number(newReview.productId);
             const productToUpdate = products.find(p => p.id === productId);
-            
+
             if (!productToUpdate) {
                 setError("Product not found");
                 return;
             }
-            
+
             const newReviewObj = {
                 id: Date.now(),
-                userId: 1, // Default user ID
+                userId: 1,
                 userName: newReview.author || "Anonymous",
                 rating: Number(newReview.stars),
                 comment: newReview.comment,
-                date: new Date().toISOString()
+                date: new Date().toISOString(),
             };
-            
+
             const updatedProduct = {
                 ...productToUpdate,
-                reviews: [...(productToUpdate.reviews || []), newReviewObj]
+                reviews: [...(productToUpdate.reviews || []), newReviewObj],
             };
-            
+
             await updateProduct(productId, updatedProduct);
+
+            setProducts(prev =>
+                prev.map(p => (p.id === productId ? updatedProduct : p))
+            );
+
             setNewReview({ productId: "", author: "", comment: "", stars: 5 });
-            
-            // Освежи приказ
-            loadProducts();
-            if (activeTab === 'reviews') {
-                loadReviews();
-            }
-            
-            if (editingProduct && editingProduct.id === productId) {
-                setEditingProduct(updatedProduct);
-            }
-        }catch(err){
+
+            if (activeTab === "reviews") loadReviews();
+            if (editingProduct?.id === productId) setEditingProduct(updatedProduct);
+        } catch (err) {
             setError(`Failed to add review${err?.status ? ` (${err.status})` : ""}`);
         }
     }
@@ -241,26 +253,22 @@ export const AdminPage = () => {
     async function handleDeleteReview(reviewId, productId) {
         try {
             const productToUpdate = products.find(p => p.id === productId);
-            if (productToUpdate) {
-                const updatedReviews = productToUpdate.reviews.filter(review => review.id !== reviewId);
-                const updatedProduct = {
-                    ...productToUpdate,
-                    reviews: updatedReviews
-                };
-                
-                await updateProduct(productId, updatedProduct);
-                
-                // Освежи приказ
-                loadProducts();
-                if (activeTab === 'reviews') {
-                    loadReviews();
-                }
-                
-                if (editingProduct && editingProduct.id === productId) {
-                    setEditingProduct(updatedProduct);
-                }
-            }
-        } catch (err) {
+            if (!productToUpdate) return;
+
+            const updatedProduct = {
+                ...productToUpdate,
+                reviews: productToUpdate.reviews.filter(r => r.id !== reviewId),
+            };
+
+            await updateProduct(productId, updatedProduct);
+
+            setProducts(prev =>
+                prev.map(p => (p.id === productId ? updatedProduct : p))
+            );
+
+            if (activeTab === "reviews") loadReviews();
+            if (editingProduct?.id === productId) setEditingProduct(updatedProduct);
+        } catch {
             setError("Failed to delete review");
         }
     }
