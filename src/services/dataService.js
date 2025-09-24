@@ -24,7 +24,7 @@ export async function getUser(){
         throw { 
             message: "Authentication required. Please login again.", 
             status: 401 
-        };
+        }; //eslint-disable-line
     }
     
     const requestOptions = {
@@ -63,7 +63,7 @@ export async function getUserOrders(){
         throw { 
             message: "Authentication required. Please login again.", 
             status: 401 
-        };
+        }; //eslint-disable-line
     }
     
     const requestOptions = {
@@ -86,7 +86,7 @@ export async function getUserOrders(){
         throw { 
             message: response.statusText, 
             status: response.status 
-        };
+        };  //eslint-disable-line
     }
     
     const data = await response.json();
@@ -100,7 +100,7 @@ export async function createOrder(cartList, total, user){
         throw { 
             message: "Authentication required. Please login again.", 
             status: 401 
-        };
+        }; //eslint-disable-line
     }
     
     const order = {
@@ -135,7 +135,7 @@ export async function createOrder(cartList, total, user){
         throw { 
             message: response.statusText, 
             status: response.status 
-        };
+        }; //eslint-disable-line
     }
     
     const data = await response.json();
